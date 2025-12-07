@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+
+# IDEs
+.idea/
+*.iml
+*.class
+
+# Logs
+*.log
+
+# OS/Editor
+Thumbs.db
+.vscode/
+*.swp
+
+# Ignore environment config files (optional)
+.env
+.env.*
+
+# Git files
+*.orig
+
+# Docker files
+docker-compose.yml
+!docker-compose.prod.yml
