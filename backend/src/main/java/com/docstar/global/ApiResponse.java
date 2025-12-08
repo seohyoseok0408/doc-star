@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ApiResponse<T> {
+
     private String message;  // 응답 메시지
     private T data;          // 응답 데이터
 
@@ -27,4 +28,3 @@ public class ApiResponse<T> {
         return new ApiResponse<>(message, null);
     }
 }
-

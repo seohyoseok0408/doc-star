@@ -1,5 +1,5 @@
 package com.docstar.domain.user.entity;
 
-public enum Role {
+public enum UserRoleType {
     USER, ADMIN
 }

@@ -1,84 +1,114 @@
-// package com.docstar.config;
+package com.docstar.config;
 
-// import lombok.RequiredArgsConstructor;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 
-// import org.springframework.beans.factory.annotation.Value;
-// import org.springframework.context.annotation.Bean;
-// import org.springframework.context.annotation.Configuration;
-// import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-// import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-// import org.springframework.security.config.http.SessionCreationPolicy;
-// import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-// import org.springframework.security.crypto.password.PasswordEncoder;
-// import org.springframework.security.web.SecurityFilterChain;
-// import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-// import org.springframework.security.web.authentication.logout.LogoutFilter;
+import com.docstar.domain.jwt.service.JwtService;
+import com.docstar.filter.JWTFilter;
+import com.docstar.filter.LoginFilter;
+import com.docstar.handler.RefreshTokenLogoutHandler;
 
-// @Configuration
-// @RequiredArgsConstructor
-// public class SecurityConfig {
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
 
-//     private final AuthenticationConfiguration authenticationConfiguration;
-//     private final JWTUtil jwtUtil;
-//     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint; 
-//     private final RedisTemplate<String, Object> redisTemplate;
-//     private final CustomOAuth2UserService customOAuth2UserService;
+    private final AuthenticationConfiguration authenticationConfiguration;
+    private final AuthenticationSuccessHandler loginSuccessHandler;
+    private final AuthenticationFailureHandler loginFailureHandler;
+    private final JwtService jwtService; 
+    private final RefreshTokenLogoutHandler refreshTokenLogoutHandler;
 
-//     @Value("${custom.frontend.base-url}")
-//     private String frontendBaseUrl;
+    public SecurityConfig(
+            AuthenticationConfiguration authenticationConfiguration,
+            @Qualifier("LoginSuccessHandler") AuthenticationSuccessHandler loginSuccessHandler,
+            @Qualifier("LoginFailureHandler") AuthenticationFailureHandler loginFailureHandler,
+            JwtService jwtService,
+            RefreshTokenLogoutHandler refreshTokenLogoutHandler
+    ) {
+        this.authenticationConfiguration = authenticationConfiguration;
+        this.loginSuccessHandler = loginSuccessHandler;
+        this.loginFailureHandler = loginFailureHandler;
+        this.jwtService = jwtService;
+        this.refreshTokenLogoutHandler = refreshTokenLogoutHandler;
+    }
 
-//     // 비밀번호 암호화를 위한 Bean 등록
-//     @Bean
-//     public PasswordEncoder passwordEncoder() {
-//         return new BCryptPasswordEncoder();
-//     }
+    // 커스텀 자체 로그인 필터를 위한 AuthenticationManager Bean 수동 등록
+    // LoginFilter에게 AuthenticationManger를 명시적 주입하기 위함
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+        return configuration.getAuthenticationManager();
+    }
+    
+    // 비밀번호 단방향(BCrypt) 암호화용 Bean
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-//     // 보안 필터 체인 설정
-//     @Bean
-//     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    // SecurityFilterChain
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-//         // 기본 설정 비활성화: CSRF, FormLogin, HttpBasic
-//         http
-//                 .csrf(csrf -> csrf.disable())
-//                 .formLogin(form -> form.disable())
-//                 .httpBasic(httpBasic -> httpBasic.disable());
+        // CSRF 보안 필터 disable
+        http
+                .csrf(AbstractHttpConfigurer::disable);
+
+        // CORS 설정
+
+        // 기본 Form 기반 인증 필터들 disable
+        http
+                .formLogin(AbstractHttpConfigurer::disable);
+
+        // 기본 Basic 인증 필터 disable
+        http
+                .httpBasic(AbstractHttpConfigurer::disable);
+
+        // 인가
+        http
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll());
+
+        // 예외 처리
+        http
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED); // 401 응답
+                        })
+                        .accessDeniedHandler((request, response, authException) -> {
+                            response.sendError(HttpServletResponse.SC_FORBIDDEN); // 403 응답
+                        })
+                );
+        http
+                .addFilterBefore(new JWTFilter(), LogoutFilter.class);
+        // 커스텀 필터 추가
+        http
+                .addFilterBefore(new LoginFilter(authenticationManager(authenticationConfiguration), loginSuccessHandler, loginFailureHandler), UsernamePasswordAuthenticationFilter.class);
         
-//         // 경로별 인가 정책
-//         http
-//                 .authorizeHttpRequests(auth -> auth
-//                         .requestMatchers("/api/auth/**", "/login/**", "oauth2/**", "/ws/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-//                         .requestMatchers("/api/users/complete-info").hasRole("PREUSER")
-//                         .requestMatchers("/api/**").hasRole("USER")
-//                         .anyRequest().authenticated()
-//                 );
-        
-//         // 인증 예외 처리 핸들러 설정 (401 에러 처리)
-//         http
-//                 .exceptionHandling(exception -> exception
-//                 .authenticationEntryPoint(customAuthenticationEntryPoint) 
-//                 );    
-        
-//         // OAuth2 로그인 설정
-//         http
-//                 .oauth2Login((oauth2) -> oauth2
-//                         .successHandler(new CustomSuccessHandler(jwtUtil, redisTemplate, frontendBaseUrl))
-//                         .userInfoEndpoint((userInfoEndpointConfig) -> userInfoEndpointConfig
-//                                 .userService(customOAuth2UserService)));
-        
-//         // JWT 로그인 필터 등록 (아이디/비밀번호 기반 로그인)
-//         http
-//                 .addFilterAt(new LoginFilter(authenticationConfiguration.getAuthenticationManager(), jwtUtil, redisTemplate), UsernamePasswordAuthenticationFilter.class)
-//                 // JWT 인증 필터 등록 (모든 요청마다 토큰 검증)
-//                 .addFilterAfter(new JWTFilter(jwtUtil), LoginFilter.class);
-        
-//         // 커스텀 로그아웃 필터 등록 (JWT 기반 로그아웃 처리)
-//         http
-//                 .addFilterBefore(new CustomLogoutFilter(jwtUtil, redisTemplate), LogoutFilter.class);
+        // 기본 로그아웃 필터 + 커스텀 Refresh 토큰 삭제 핸들러 추가
+        http
+                .logout(logout -> logout
+                        .addLogoutHandler(refreshTokenLogoutHandler));
 
-//         // 세션 사용 안함
-//         http
-//                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        // 세션 필터 설정 (STATELESS)
+        http
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-//         return http.build();
-//     }
-// }
+        return http.build();
+    }
+}
