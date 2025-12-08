@@ -1,9 +1,15 @@
 package com.docstar.config;
 
 import jakarta.servlet.http.HttpServletResponse;
+
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -17,8 +23,12 @@ import org.springframework.security.web.authentication.AuthenticationFailureHand
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.docstar.domain.jwt.service.JwtService;
+import com.docstar.domain.user.entity.UserRoleType;
 import com.docstar.filter.JWTFilter;
 import com.docstar.filter.LoginFilter;
 import com.docstar.handler.RefreshTokenLogoutHandler;
@@ -53,11 +63,35 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
+
+    // 권한 계층
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.withRolePrefix("ROLE_")
+                .role(UserRoleType.ADMIN.name()).implies(UserRoleType.USER.name())
+                .build();
+    }
     
     // 비밀번호 단방향(BCrypt) 암호화용 Bean
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    // CORS Bean
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     // SecurityFilterChain
@@ -69,6 +103,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable);
 
         // CORS 설정
+        http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
         // 기본 Form 기반 인증 필터들 disable
         http
@@ -81,8 +117,9 @@ public class SecurityConfig {
         // 인가
         http
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll());
-
+                    .requestMatchers("/jwt/refresh").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/user/exist", "/user").permitAll()
+                    .anyRequest().authenticated());
         // 예외 처리
         http
                 .exceptionHandling(e -> e
@@ -93,6 +130,7 @@ public class SecurityConfig {
                             response.sendError(HttpServletResponse.SC_FORBIDDEN); // 403 응답
                         })
                 );
+        // JWTFilter 등록
         http
                 .addFilterBefore(new JWTFilter(), LogoutFilter.class);
         // 커스텀 필터 추가
