@@ -1,5 +1,7 @@
 package com.docstar.domain.jwt.service;
 
+import java.time.LocalDateTime;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -81,5 +83,13 @@ public class JwtService {
         refreshRepository.save(newRefreshEntity);
 
         return new JWTResponseDTO(newAccessToken, newRefreshToken);
+    }
+
+    // 만료된 Refresh 토큰 정리
+    @Transactional
+    public void cleanupExpiredRefreshTokens() {
+        // 8일 지난 토큰을 삭제하는 비즈니스 로직을 서비스에 캡슐화
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(8);
+        refreshRepository.deleteByCreatedDateBefore(cutoff);
     }
 }
