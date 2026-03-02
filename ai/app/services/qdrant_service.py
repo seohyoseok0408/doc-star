@@ -2,7 +2,15 @@ import logging
 
 from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import UnexpectedResponse
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import (
+    Distance,
+    FieldCondition,
+    Filter,
+    MatchValue,
+    PointStruct,
+    ScoredPoint,
+    VectorParams,
+)
 
 from app.core.config import settings
 
@@ -37,16 +45,18 @@ def ensure_collection(client: QdrantClient) -> None:
 
 def upsert_embedding(
     client: QdrantClient,
+    chunk_id: int,
     document_id: int,
     vector: list[float],
+    text: str,
 ) -> None:
     client.upsert(
         collection_name=settings.qdrant_collection,
         points=[
             PointStruct(
-                id=document_id,
+                id=chunk_id,
                 vector=vector,
-                payload={"document_id": document_id},
+                payload={"document_id": document_id, "chunk_id": chunk_id, "text": text},
             )
         ],
     )
@@ -55,5 +65,25 @@ def upsert_embedding(
 def delete_embedding(client: QdrantClient, document_id: int) -> None:
     client.delete(
         collection_name=settings.qdrant_collection,
-        points_selector=[document_id],
+        points_selector=Filter(
+            must=[
+                FieldCondition(
+                    key="document_id",
+                    match=MatchValue(value=document_id),
+                )
+            ]
+        ),
+    )
+
+
+def search_embeddings(
+    client: QdrantClient,
+    query_vector: list[float],
+    top_k: int = 5,
+) -> list[ScoredPoint]:
+    return client.search(
+        collection_name=settings.qdrant_collection,
+        query_vector=query_vector,
+        limit=top_k,
+        with_payload=True,
     )

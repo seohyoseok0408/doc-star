@@ -14,3 +14,13 @@ class SearchResult(BaseModel):
 
 class SemanticSearchResponse(BaseModel):
     results: list[SearchResult]
+
+
+class AskRequest(BaseModel):
+    question: str
+    top_k: int = 3
+
+
+class AskResponse(BaseModel):
+    answer: str
+    sources: list[SearchResult]

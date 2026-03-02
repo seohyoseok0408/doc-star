@@ -24,9 +24,19 @@ async def generate_embedding(
 ) -> EmbeddingResponse:
     try:
         qdrant_service.ensure_collection(client)
-        vector = embedding_service.encode(body.text)
-        qdrant_service.upsert_embedding(client, body.document_id, vector)
-        return EmbeddingResponse(document_id=body.document_id, success=True)
+        vector = await embedding_service.encode(body.text)
+        qdrant_service.upsert_embedding(
+            client,
+            chunk_id=body.chunk_id,
+            document_id=body.document_id,
+            vector=vector,
+            text=body.text,
+        )
+        return EmbeddingResponse(
+            document_id=body.document_id,
+            chunk_id=body.chunk_id,
+            success=True,
+        )
     except Exception as e:
         logger.error("Embedding generation failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

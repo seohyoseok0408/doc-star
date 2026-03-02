@@ -15,10 +15,12 @@ async def check_health() -> bool:
                 return False
             models = resp.json().get("models", [])
             available = [m["name"] for m in models]
-            if settings.ollama_model not in available:
+            required = {settings.ollama_model, settings.ollama_embed_model}
+            missing = required - set(available)
+            if missing:
                 logger.warning(
-                    "Model '%s' not found. Available: %s",
-                    settings.ollama_model,
+                    "Required models not found: %s. Available: %s",
+                    missing,
                     available,
                 )
                 return False
@@ -26,3 +28,13 @@ async def check_health() -> bool:
     except Exception:
         logger.warning("Ollama health check failed", exc_info=True)
         return False
+
+
+async def generate(prompt: str) -> str:
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        resp = await client.post(
+            f"{settings.ollama_base_url}/api/generate",
+            json={"model": settings.ollama_model, "prompt": prompt, "stream": False},
+        )
+        resp.raise_for_status()
+        return resp.json()["response"]

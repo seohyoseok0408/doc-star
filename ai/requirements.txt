@@ -1,7 +1,13 @@
+# Web framework
 fastapi==0.115.12
 uvicorn==0.34.0
 pydantic-settings==2.8.1
+
+# Vector DB client
 qdrant-client==1.13.3
-sentence-transformers==3.4.1
+
+# Ollama Python client
 ollama==0.4.7
+
+# HTTP client (Ollama REST API 직접 호출 및 헬스체크)
 httpx==0.28.1
