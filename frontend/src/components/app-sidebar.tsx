@@ -1,4 +1,4 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react";
+import { Calendar, Home, Inbox, Search, Settings, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import {
@@ -14,11 +14,11 @@ import {
 
 // Menu items.
 const items = [
-  { title: "Home", url: "/", icon: Home },
+  { title: "Dashboard", url: "/", icon: Home },
+  { title: "Search", url: "/search", icon: Search },
+  { title: "Document", url: "#", icon: BookOpen },
   { title: "Other", url: "/222", icon: Inbox },
-  // { title: "Calendar", url: "#", icon: Calendar },
-  // { title: "Search", url: "#", icon: Search },
-  // { title: "Settings", url: "#", icon: Settings },
+  { title: "Settings", url: "#", icon: Settings },
 ];
 
 export function AppSidebar() {
