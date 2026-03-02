@@ -1,0 +1,7 @@
+fastapi==0.115.12
+uvicorn==0.34.0
+pydantic-settings==2.8.1
+qdrant-client==1.13.3
+sentence-transformers==3.4.1
+ollama==0.4.7
+httpx==0.28.1
