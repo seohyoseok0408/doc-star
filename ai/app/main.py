@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI
 
 from app.core.config import settings
-from app.routers import embeddings, graph, health, search
+from app.routers import embeddings, graph, health, search, summary
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,6 +19,7 @@ app = FastAPI(
 app.include_router(health.router)
 app.include_router(embeddings.router)
 app.include_router(search.router)
+app.include_router(summary.router)
 app.include_router(graph.router)
 
 
@@ -27,7 +28,7 @@ async def startup_event() -> None:
     logger.info("Doc-Star AI Service starting up")
     logger.info("Qdrant: %s:%s", settings.qdrant_host, settings.qdrant_port)
     logger.info("Ollama: %s", settings.ollama_base_url)
-    logger.info("Embedding model: %s", settings.embedding_model)
+    logger.info("Embedding model: %s", settings.ollama_embed_model)
 
 
 if __name__ == "__main__":

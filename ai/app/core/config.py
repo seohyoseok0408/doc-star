@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     # Embedding (Ollama 기반)
     ollama_embed_model: str = "qwen2.5:1.5b"
-    embedding_dimension: int = 1536
+    embedding_dimension: int = 1536  # qwen2.5:1.5b → 1536차원
 
 
 settings = Settings()

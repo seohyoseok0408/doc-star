@@ -49,16 +49,32 @@ def upsert_embedding(
     document_id: int,
     vector: list[float],
     text: str,
+    chunk_index: int | None = None,
+    start_pos: int | None = None,
+    end_pos: int | None = None,
 ) -> None:
+    payload: dict = {"document_id": document_id, "chunk_id": chunk_id, "text": text}
+    if chunk_index is not None:
+        payload["chunk_index"] = chunk_index
+    if start_pos is not None:
+        payload["start_pos"] = start_pos
+    if end_pos is not None:
+        payload["end_pos"] = end_pos
+
     client.upsert(
         collection_name=settings.qdrant_collection,
-        points=[
-            PointStruct(
-                id=chunk_id,
-                vector=vector,
-                payload={"document_id": document_id, "chunk_id": chunk_id, "text": text},
-            )
-        ],
+        points=[PointStruct(id=chunk_id, vector=vector, payload=payload)],
+    )
+
+
+def batch_upsert_embeddings(
+    client: QdrantClient,
+    points: list[PointStruct],
+) -> None:
+    """여러 포인트를 한 번에 Qdrant에 적재. 단건 upsert보다 효율적."""
+    client.upsert(
+        collection_name=settings.qdrant_collection,
+        points=points,
     )
 
 
