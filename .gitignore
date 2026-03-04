@@ -12,6 +12,7 @@
 # OS/Editor
 Thumbs.db
 .vscode/
+.claude/
 *.swp
 
 # Ignore environment config files (optional)
