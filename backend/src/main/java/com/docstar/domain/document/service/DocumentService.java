@@ -1,5 +1,7 @@
 package com.docstar.domain.document.service;
 
+import com.docstar.domain.document.dto.BatchEmbeddingRequest;
+import com.docstar.domain.document.dto.BatchEmbeddingResponse;
 import com.docstar.domain.document.entity.DocumentChunkEntity;
 import com.docstar.domain.document.entity.DocumentEntity;
 import com.docstar.domain.document.entity.DocumentStatus;
@@ -11,8 +13,10 @@ import com.docstar.domain.user.entity.UserEntity;
 import com.docstar.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
 
 import org.apache.pdfbox.Loader;
@@ -33,6 +37,7 @@ public class DocumentService {
     private final DocumentTextRepository documentTextRepository;
     private final DocumentChunkRepository documentChunkRepository;
     private final UserRepository userRepository;
+    private final RestClient aiRestClient;
 
     @Transactional
     public void processDocument(MultipartFile file, String username) throws IOException {
@@ -70,10 +75,40 @@ public class DocumentService {
         }
         documentChunkRepository.saveAll(chunkEntities);
 
-        documentEntity.markCompleted();
+        try {
+            BatchEmbeddingResponse response = callEmbeddingApi(documentEntity, chunkEntities);
+            if (response.failed() > 0) {
+                log.warn("일부 청크 임베딩 실패: docId={}, succeeded={}, failed={}",
+                        documentEntity.getDocId(), response.succeeded(), response.failed());
+            }
+            documentEntity.markCompleted();
+        } catch (Exception e) {
+            documentEntity.markFailed();
+            documentRepository.save(documentEntity);
+            log.error("AI 임베딩 호출 실패: docId={}", documentEntity.getDocId(), e);
+            throw new IOException("AI 서버 임베딩 처리 실패", e);
+        }
         documentRepository.save(documentEntity);
 
         log.info("문서 처리 완료: docId={}, chunks={}", documentEntity.getDocId(), chunks.size());
+    }
+
+    private BatchEmbeddingResponse callEmbeddingApi(DocumentEntity doc, List<DocumentChunkEntity> chunks) {
+        int docIdInt = Math.toIntExact(doc.getDocId());
+
+        List<BatchEmbeddingRequest.ChunkItem> chunkItems = chunks.stream()
+                .map(c -> new BatchEmbeddingRequest.ChunkItem(
+                        c.getChunkId(), c.getChunkIndex(), c.getText()))
+                .toList();
+
+        BatchEmbeddingRequest request = new BatchEmbeddingRequest(docIdInt, chunkItems);
+
+        return aiRestClient.post()
+                .uri("/internal/embeddings/batch")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .retrieve()
+                .body(BatchEmbeddingResponse.class);
     }
 
     private String extractText(MultipartFile file) throws IOException {
