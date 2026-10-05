@@ -15,6 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -45,7 +49,7 @@ public class DocumentService {
                 .build();
         documentRepository.save(documentEntity);
 
-        String fullText = new String(file.getBytes(), StandardCharsets.UTF_8);
+        String fullText = extractText(file);
 
         DocumentTextEntity documentTextEntity = DocumentTextEntity.builder()
                 .document(documentEntity)
@@ -70,6 +74,18 @@ public class DocumentService {
         documentRepository.save(documentEntity);
 
         log.info("문서 처리 완료: docId={}, chunks={}", documentEntity.getDocId(), chunks.size());
+    }
+
+    private String extractText(MultipartFile file) throws IOException {
+        String mimeType = file.getContentType();
+        if ("application/pdf".equals(mimeType)) {
+            try (PDDocument doc = Loader.loadPDF(file.getBytes())) {
+                return new PDFTextStripper().getText(doc);
+            }
+        } else if (mimeType != null && mimeType.startsWith("text/")) {
+            return new String(file.getBytes(), StandardCharsets.UTF_8);
+        }
+        throw new IllegalArgumentException("지원하지 않는 파일 형식입니다: " + mimeType);
     }
 
     private List<String> chunkText(String text, int chunkSize) {

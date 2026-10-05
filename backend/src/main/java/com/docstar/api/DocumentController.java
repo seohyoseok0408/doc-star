@@ -38,7 +38,9 @@ public class DocumentController {
             log.info("File upload initiated: {}", originalFileName);
             return ResponseEntity.ok(ApiResponse.success("파일이 성공적으로 업로드 및 처리 요청되었습니다: " + originalFileName, null));
 
-        } catch (IOException e) { // IOException from file handling or service
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+        } catch (IOException e) {
             log.error("Failed to process file upload", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.failure("파일 업로드 및 처리에 실패했습니다."));
         }
