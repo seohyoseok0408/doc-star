@@ -26,8 +26,7 @@ public class DocumentTextEntity {
     @JoinColumn(name = "doc_id")
     private DocumentEntity document;
 
-    @Lob 
-    @Column(name = "full_text", nullable = false)
+    @Column(name = "full_text", nullable = false, columnDefinition = "MEDIUMTEXT")
     private String fullText;
 
     @CreatedDate

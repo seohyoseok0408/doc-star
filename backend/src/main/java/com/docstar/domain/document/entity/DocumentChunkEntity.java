@@ -35,8 +35,7 @@ public class DocumentChunkEntity {
     @Column(name = "end_pos")
     private Integer endPos;
 
-    @Lob
-    @Column(name = "text", nullable = false)
+    @Column(name = "text", nullable = false, columnDefinition = "TEXT")
     private String text;
 
     @Column(name = "embedding_id", length = 100)
