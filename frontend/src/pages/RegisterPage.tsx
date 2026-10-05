@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { SignupForm } from "@/components/signup-form";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { extractErrorInfo } from "@/utils/apiClient";
 
 export default function RegisterPage() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -38,7 +40,8 @@ export default function RegisterPage() {
         headers: { "Content-Type": "application/json" },
       });
 
-      alert("회원가입 성공!");
+      alert("회원가입 성공! 로그인해주세요.");
+      navigate("/login", { replace: true });
     } catch (error) {
       const { message } = extractErrorInfo(error);
       alert(`회원가입 실패: ${message}`);

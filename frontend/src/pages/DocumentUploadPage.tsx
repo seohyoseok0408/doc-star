@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { apiUpload } from "@/utils/apiClient";
+import { apiUpload, extractErrorInfo } from "@/utils/apiClient";
 
 export default function DocumentUploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -27,7 +27,7 @@ export default function DocumentUploadPage() {
     }
 
     setLoading(true);
-    setUploadStatus("업로드 중...");
+    setUploadStatus("");
     setIsError(false);
 
     const formData = new FormData();
@@ -36,12 +36,10 @@ export default function DocumentUploadPage() {
     try {
       const response = await apiUpload<string>("/api/document/upload", formData);
 
-      console.log("File upload successful:", response);
       setUploadStatus(response || `'${selectedFile.name}' 파일이 성공적으로 업로드되었습니다.`);
       setSelectedFile(null); // Clear selected file after successful upload
-    } catch (error: any) {
-      console.error("File upload failed:", error);
-      const errorMessage = error.message || "파일 업로드에 실패했습니다.";
+    } catch (error) {
+      const { message: errorMessage } = extractErrorInfo(error);
       setUploadStatus(errorMessage);
       setIsError(true);
     } finally {

@@ -1,7 +1,6 @@
 import axios, { AxiosHeaders, AxiosError } from "axios";
 import type {
   AxiosInstance,
-  AxiosRequestConfig,
   AxiosResponse,
   AxiosResponseHeaders,
   InternalAxiosRequestConfig,
@@ -16,6 +15,8 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+type RetryableRequestConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+
 // Axios 인스턴스 생성
 const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -25,7 +26,7 @@ const apiClient: AxiosInstance = axios.create({
 });
 
 // --- 요청 인터셉터 (Authorization 헤더 자동 추가) ---
-apiClient.interceptors.request.use((config: InternalAxiosRequestConfig<any>) => {
+apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   // Bearer .. 토큰 획득
   const auth: string = getAuthHeader();
   if (!config.headers) {
@@ -42,12 +43,11 @@ apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
     const status: number | undefined = error.response?.status;
-    const originalRequest: AxiosRequestConfig | undefined = error.config;
+    const originalRequest = error.config as RetryableRequestConfig | undefined;
 
-    console.error("API 에러 발생", error);
     // 401 Unauthorized 에러 처리 및 토큰 재발급 시도
-    if (status === 401 && originalRequest && !(originalRequest as any)._retry) {
-      (originalRequest as any)._retry = true;
+    if (status === 401 && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true;
 
       try {
         const reissueRes: AxiosResponse = await axios.post(
@@ -62,8 +62,7 @@ apiClient.interceptors.response.use(
 
         if (newAccessToken) {
           setToken(newAccessToken);
-          originalRequest.headers = originalRequest.headers || {};
-          (originalRequest.headers as any).Authorization = `Bearer ${newAccessToken}`;
+          originalRequest.headers.set("Authorization", `Bearer ${newAccessToken}`);
           return apiClient(originalRequest);
         }
       } catch (reissueError) {
@@ -88,7 +87,6 @@ apiClient.interceptors.response.use(
  */
 // AxiosResponse의 제네릭을 ApiResponse<T>로 설정
 const handleResponse = <T>(response: AxiosResponse<ApiResponse<T>>): T => {
-  console.log("API 응답", response);
   return response.data.data;
 };
 
@@ -98,7 +96,7 @@ export const apiGet = async <T>(url: string): Promise<T> => {
   return handleResponse<T>(response);
 };
 
-export const apiPost = async <T>(url: string, body: any): Promise<T> => {
+export const apiPost = async <T>(url: string, body: unknown): Promise<T> => {
   const response: AxiosResponse<ApiResponse<T>> = await apiClient.post(url, body);
   return handleResponse<T>(response);
 };
@@ -111,12 +109,12 @@ export const apiUpload = async <T>(url: string, formData: FormData): Promise<T> 
   return handleResponse<T>(response);
 };
 
-export const apiPut = async <T>(url: string, body: any): Promise<T> => {
+export const apiPut = async <T>(url: string, body: unknown): Promise<T> => {
   const response: AxiosResponse<ApiResponse<T>> = await apiClient.put(url, body);
   return handleResponse<T>(response);
 };
 
-export const apiPatch = async <T>(url: string, body: any): Promise<T> => {
+export const apiPatch = async <T>(url: string, body: unknown): Promise<T> => {
   const response: AxiosResponse<ApiResponse<T>> = await apiClient.patch(url, body);
   return handleResponse<T>(response);
 };
@@ -128,9 +126,9 @@ export const apiDelete = async <T>(url: string): Promise<T> => {
 
 // --- 에러 정보 추출 ---
 export const extractErrorInfo = (
-  error: AxiosError | any
+  error: unknown
 ): { status: number | undefined; message: string } => {
-  if (axios.isAxiosError(error)) {
+  if (axios.isAxiosError<{ message?: string }>(error)) {
     const status = error.response?.status;
     const data = error.response?.data;
 

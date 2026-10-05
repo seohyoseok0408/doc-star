@@ -16,10 +16,9 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log(import.meta.env.VITE_BACKEND_API_BASE_URL);
 
     try {
-      const res = await axios.post<ApiResponse<any>>(
+      const res = await axios.post<ApiResponse<unknown>>(
         `${import.meta.env.VITE_BACKEND_API_BASE_URL}/login`,
         formData,
         {
@@ -29,8 +28,6 @@ export default function LoginPage() {
           },
         }
       );
-
-      console.log(res);
 
       const accessToken = extractTokenFromHeader(res);
 

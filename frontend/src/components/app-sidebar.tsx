@@ -1,4 +1,4 @@
-import { Home, Inbox, Search, Settings, BookOpen } from "lucide-react";
+import { Home, Search, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import {
@@ -17,8 +17,6 @@ const items = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Search", url: "/search", icon: Search },
   { title: "Document", url: "/upload", icon: BookOpen },
-  { title: "Other", url: "/222", icon: Inbox },
-  { title: "Settings", url: "#", icon: Settings },
 ];
 
 export function AppSidebar() {

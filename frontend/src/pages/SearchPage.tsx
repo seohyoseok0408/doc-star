@@ -2,12 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { apiPost } from "@/utils/apiClient";
+import { apiPost, extractErrorInfo } from "@/utils/apiClient";
 
 interface Message {
   text: string;
   sender: "user" | "ai";
   sources?: SourceItem[];
+  isError?: boolean;
 }
 
 interface SearchAskResponse {
@@ -28,7 +29,6 @@ export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false); // New state for dynamic layout
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -50,7 +50,6 @@ export default function SearchPage() {
     setMessages((prevMessages) => [...prevMessages, userMessage]);
     setQuery("");
     setLoading(true);
-    setError(null);
 
     try {
       const data = await apiPost<SearchAskResponse>("/api/search/ask", {
@@ -65,9 +64,8 @@ export default function SearchPage() {
       };
       setMessages((prevMessages) => [...prevMessages, aiMessage]);
     } catch (err) {
-      const errorMessage = (err as Error).message || "응답을 처리하는 중 오류가 발생했습니다.";
-      setError(errorMessage);
-      const errorMessageForChat: Message = { text: `오류: ${errorMessage}`, sender: "ai" };
+      const { message: errorMessage } = extractErrorInfo(err);
+      const errorMessageForChat: Message = { text: `오류: ${errorMessage}`, sender: "ai", isError: true };
       setMessages((prevMessages) => [...prevMessages, errorMessageForChat]);
     } finally {
       setLoading(false);
@@ -89,8 +87,8 @@ export default function SearchPage() {
               placeholder="궁금한 점을 입력하세요..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === "Enter") {
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                   handleSearch();
                 }
               }}
@@ -105,11 +103,11 @@ export default function SearchPage() {
       ) : (
         // Post-Search State: Chat-like interface
         <>
-          <div className="container mx-auto max-w-3xl flex-grow overflow-y-auto pb-4 custom-scrollbar">
+          <div className="container mx-auto max-w-3xl flex-grow overflow-y-auto pb-4">
             <h1 className="text-3xl font-bold mb-6 text-center">Document Search</h1>
 
             <div className="flex flex-col space-y-4">
-              {messages.length === 0 && !loading && !error && (
+              {messages.length === 0 && !loading && (
                 <p className="text-center text-muted-foreground">
                   궁금한 점을 입력하고 문서 검색을 시작하세요.
                 </p>
@@ -124,7 +122,9 @@ export default function SearchPage() {
                     className={`max-w-[70%] p-3 rounded-lg shadow-md ${
                       message.sender === "user"
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
+                        : message.isError
+                          ? "bg-destructive/10 text-destructive border border-destructive/40"
+                          : "bg-muted text-foreground"
                     }`}
                   >
                     <CardContent className="p-0">
@@ -154,15 +154,6 @@ export default function SearchPage() {
                   </Card>
                 </div>
               )}
-              {error && (
-                <div className="flex justify-start">
-                  <Card className="max-w-[70%] p-3 rounded-lg shadow-md bg-destructive/10 text-destructive border border-destructive/40">
-                    <CardContent className="p-0">
-                      <p>오류: {error}</p>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
               <div ref={messagesEndRef} />
             </div>
           </div>
@@ -174,8 +165,8 @@ export default function SearchPage() {
                 placeholder="메시지를 입력하세요..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === "Enter") {
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                     handleSearch();
                   }
                 }}
