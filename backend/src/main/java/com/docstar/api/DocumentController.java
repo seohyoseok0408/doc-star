@@ -1,0 +1,46 @@
+package com.docstar.api;
+
+import com.docstar.domain.document.service.DocumentService; // New import
+import com.docstar.global.ApiResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+
+@Slf4j
+@RestController
+@RequestMapping("/api/document")
+@RequiredArgsConstructor
+public class DocumentController {
+
+    private final DocumentService documentService; // Injected DocumentService
+
+    // UPLOAD_DIR is now managed by DocumentService or configuration
+    // private final String UPLOAD_DIR = "./uploads/"; 
+
+    @PostMapping("/upload")
+    public ResponseEntity<ApiResponse<String>> uploadDocument(@RequestParam("file") MultipartFile file) {
+
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure("업로드할 파일을 선택해주세요."));
+        }
+
+        try {
+            String originalFileName = file.getOriginalFilename();
+            Long userId = 1L; // TODO: Security Context에서 실제 userId 추출로 교체
+
+            documentService.processDocument(file, userId);
+
+            log.info("File upload initiated: {}", originalFileName);
+            return ResponseEntity.ok(ApiResponse.success("파일이 성공적으로 업로드 및 처리 요청되었습니다: " + originalFileName, null));
+
+        } catch (IOException e) { // IOException from file handling or service
+            log.error("Failed to process file upload", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.failure("파일 업로드 및 처리에 실패했습니다."));
+        }
+    }
+}
