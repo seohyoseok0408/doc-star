@@ -6,6 +6,7 @@ import LoginPage from "@/pages/LoginPage";
 import ProtectedRoute from "./ProtectedRoute";
 import NotFound from "@/pages/NotFound";
 import SearchPage from "@/pages/SearchPage";
+import DocumentUploadPage from "@/pages/DocumentUploadPage"; // Import new page
 
 export default function AppRoutes() {
   return (
@@ -17,6 +18,7 @@ export default function AppRoutes() {
            이 자식 라우트들은 <Layout> 내부의 <Outlet />에 표시 */}
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/upload" element={<DocumentUploadPage />} /> {/* New upload route */}
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
