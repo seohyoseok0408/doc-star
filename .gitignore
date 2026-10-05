@@ -12,6 +12,9 @@ CLAUDE.md
 # Logs
 *.log
 
+# Uploaded test files
+*.pdf
+
 # OS/Editor
 Thumbs.db
 .vscode/

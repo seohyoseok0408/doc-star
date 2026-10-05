@@ -26,11 +26,24 @@ export const removeToken = (): void => {
 };
 
 /**
- * 사용자가 로그인되어 있는지 확인합니다.
- * @returns {boolean} 토큰이 존재하면 true
+ * JWT payload의 exp 클레임을 검사해 유효한 토큰인지 확인합니다.
+ * 토큰이 없거나 만료됐으면 localStorage에서 제거 후 false를 반환합니다.
  */
 export const isAuthenticated = (): boolean => {
-  return !!getToken();
+  const token = getToken();
+  if (!token) return false;
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (payload.exp * 1000 < Date.now()) {
+      removeToken();
+      return false;
+    }
+    return true;
+  } catch {
+    removeToken();
+    return false;
+  }
 };
 
 /**
