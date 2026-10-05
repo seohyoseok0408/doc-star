@@ -7,6 +7,7 @@ import { apiUpload } from "@/utils/apiClient";
 export default function DocumentUploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string>("");
+  const [isError, setIsError] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,11 +22,13 @@ export default function DocumentUploadPage() {
   const handleUpload = async () => {
     if (!selectedFile) {
       setUploadStatus("파일을 선택해주세요.");
+      setIsError(true);
       return;
     }
 
     setLoading(true);
     setUploadStatus("업로드 중...");
+    setIsError(false);
 
     const formData = new FormData();
     formData.append("file", selectedFile);
@@ -40,6 +43,7 @@ export default function DocumentUploadPage() {
       console.error("File upload failed:", error);
       const errorMessage = error.message || "파일 업로드에 실패했습니다.";
       setUploadStatus(errorMessage);
+      setIsError(true);
     } finally {
       setLoading(false);
     }
@@ -67,7 +71,7 @@ export default function DocumentUploadPage() {
               className="file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground file:border-none file:rounded-md file:mr-4 file:py-2 file:px-4"
             />
             {selectedFile && (
-              <p className="text-sm text-gray-500 mt-1">선택된 파일: {selectedFile.name}</p>
+              <p className="text-sm text-muted-foreground mt-1">선택된 파일: {selectedFile.name}</p>
             )}
           </div>
           <Button
@@ -78,7 +82,7 @@ export default function DocumentUploadPage() {
             {loading ? "업로드 중..." : "업로드"}
           </Button>
           {uploadStatus && (
-            <p className={`text-center text-sm ${uploadStatus.includes("성공") ? "text-green-600" : "text-red-600"}`}>
+            <p className={`text-center text-sm ${isError ? "text-destructive" : "text-success"}`}>
               {uploadStatus}
             </p>
           )}

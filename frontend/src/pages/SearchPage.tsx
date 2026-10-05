@@ -80,7 +80,7 @@ export default function SearchPage() {
         // Initial Landing State: Centered search bar and intro
         <div className="flex flex-col flex-grow items-center justify-center container mx-auto max-w-3xl">
           <h1 className="text-4xl font-bold mb-4 text-center">무엇을 찾아드릴까요?</h1>
-          <p className="text-lg text-gray-600 mb-8 text-center">
+          <p className="text-lg text-muted-foreground mb-8 text-center">
             문서 내용을 기반으로 AI가 답변을 제공합니다.
           </p>
           <div className="flex w-full items-center space-x-2 border rounded-lg p-2">
@@ -110,7 +110,7 @@ export default function SearchPage() {
 
             <div className="flex flex-col space-y-4">
               {messages.length === 0 && !loading && !error && (
-                <p className="text-center text-gray-500">
+                <p className="text-center text-muted-foreground">
                   궁금한 점을 입력하고 문서 검색을 시작하세요.
                 </p>
               )}
@@ -123,8 +123,8 @@ export default function SearchPage() {
                   <Card
                     className={`max-w-[70%] p-3 rounded-lg shadow-md ${
                       message.sender === "user"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-800"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground"
                     }`}
                   >
                     <CardContent className="p-0">
@@ -136,7 +136,7 @@ export default function SearchPage() {
                       {message.sources.map((s, i) => (
                         <span
                           key={i}
-                          className="text-xs px-2 py-0.5 rounded-full bg-white border border-gray-300 text-gray-500"
+                          className="text-xs px-2 py-0.5 rounded-full bg-background border text-muted-foreground"
                         >
                           문서{s.document_id} · {(s.score * 100).toFixed(0)}%
                         </span>
@@ -147,7 +147,7 @@ export default function SearchPage() {
               ))}
               {loading && (
                 <div className="flex justify-start">
-                  <Card className="max-w-[70%] p-3 rounded-lg shadow-md bg-gray-200 text-gray-800">
+                  <Card className="max-w-[70%] p-3 rounded-lg shadow-md bg-muted text-foreground">
                     <CardContent className="p-0">
                       <p>AI가 답변을 생성 중입니다...</p>
                     </CardContent>
@@ -156,7 +156,7 @@ export default function SearchPage() {
               )}
               {error && (
                 <div className="flex justify-start">
-                  <Card className="max-w-[70%] p-3 rounded-lg shadow-md bg-red-100 text-red-800 border border-red-400">
+                  <Card className="max-w-[70%] p-3 rounded-lg shadow-md bg-destructive/10 text-destructive border border-destructive/40">
                     <CardContent className="p-0">
                       <p>오류: {error}</p>
                     </CardContent>
