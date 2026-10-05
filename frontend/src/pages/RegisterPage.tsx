@@ -34,7 +34,7 @@ export default function RegisterPage() {
         nickname: formData.nickname,
         email: formData.email,
       };
-      const res = await axios.post(`${import.meta.env.VITE_BACKEND_API_BASE_URL}/user`, body, {
+      await axios.post(`${import.meta.env.VITE_BACKEND_API_BASE_URL}/user`, body, {
         headers: { "Content-Type": "application/json" },
       });
 

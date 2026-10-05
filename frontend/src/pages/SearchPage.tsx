@@ -1,12 +1,26 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { apiPost } from "@/utils/apiClient";
 
 interface Message {
   text: string;
   sender: "user" | "ai";
+}
+
+interface SearchAskResponse {
+  answer: string;
+  sources: SourceItem[];
+  latency_ms: number;
+}
+
+interface SourceItem {
+  document_id: number;
+  chunk_id: number | null;
+  chunk_index: number | null;
+  score: number;
+  text: string | null;
 }
 
 export default function SearchPage() {
@@ -38,26 +52,19 @@ export default function SearchPage() {
     setError(null);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate network delay
+      const data = await apiPost<SearchAskResponse>("/api/search/ask", {
+        question: query,
+        top_k: 3,
+      });
 
-      let aiResponseText: string;
-      const lowerCaseQuery = query.toLowerCase();
+      const sourceText =
+        data.sources.length > 0
+          ? `\n\n참고 문서: ${data.sources
+              .map((s) => `문서${s.document_id} (유사도 ${(s.score * 100).toFixed(0)}%)`)
+              .join(", ")}`
+          : "";
 
-      if (lowerCaseQuery.includes("문서 업로드")) {
-        aiResponseText = "문서 업로드는 상단 메뉴의 '업로드' 버튼을 통해 진행하실 수 있습니다.";
-      } else if (lowerCaseQuery.includes("벡터화")) {
-        aiResponseText =
-          "업로드된 문서는 자동으로 벡터화되어 검색에 사용됩니다. 별도의 작업이 필요하지 않습니다.";
-      } else if (lowerCaseQuery.includes("안녕하세요") || lowerCaseQuery.includes("안녕")) {
-        aiResponseText = "안녕하세요! 무엇을 도와드릴까요?";
-      } else if (lowerCaseQuery.includes("오류")) {
-        throw new Error("처리 중 알 수 없는 오류가 발생했습니다.");
-      } else {
-        aiResponseText = `"${query}"에 대한 검색 결과입니다. (고정된 답변)`;
-      }
-
-      const aiMessage: Message = { text: aiResponseText, sender: "ai" };
+      const aiMessage: Message = { text: data.answer + sourceText, sender: "ai" };
       setMessages((prevMessages) => [...prevMessages, aiMessage]);
     } catch (err) {
       const errorMessage = (err as Error).message || "응답을 처리하는 중 오류가 발생했습니다.";

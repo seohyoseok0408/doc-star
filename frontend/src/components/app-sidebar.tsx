@@ -1,4 +1,4 @@
-import { Calendar, Home, Inbox, Search, Settings, BookOpen } from "lucide-react";
+import { Home, Inbox, Search, Settings, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import {
