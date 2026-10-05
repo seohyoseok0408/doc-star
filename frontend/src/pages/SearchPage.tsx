@@ -7,6 +7,7 @@ import { apiPost } from "@/utils/apiClient";
 interface Message {
   text: string;
   sender: "user" | "ai";
+  sources?: SourceItem[];
 }
 
 interface SearchAskResponse {
@@ -57,14 +58,11 @@ export default function SearchPage() {
         top_k: 3,
       });
 
-      const sourceText =
-        data.sources.length > 0
-          ? `\n\n참고 문서: ${data.sources
-              .map((s) => `문서${s.document_id} (유사도 ${(s.score * 100).toFixed(0)}%)`)
-              .join(", ")}`
-          : "";
-
-      const aiMessage: Message = { text: data.answer + sourceText, sender: "ai" };
+      const aiMessage: Message = {
+        text: data.answer,
+        sender: "ai",
+        sources: data.sources,
+      };
       setMessages((prevMessages) => [...prevMessages, aiMessage]);
     } catch (err) {
       const errorMessage = (err as Error).message || "응답을 처리하는 중 오류가 발생했습니다.";
@@ -120,7 +118,7 @@ export default function SearchPage() {
               {messages.map((message, index) => (
                 <div
                   key={index}
-                  className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+                  className={`flex flex-col ${message.sender === "user" ? "items-end" : "items-start"}`}
                 >
                   <Card
                     className={`max-w-[70%] p-3 rounded-lg shadow-md ${
@@ -133,6 +131,18 @@ export default function SearchPage() {
                       <p>{message.text}</p>
                     </CardContent>
                   </Card>
+                  {message.sources && message.sources.length > 0 && (
+                    <div className="max-w-[70%] mt-1 flex flex-wrap gap-1">
+                      {message.sources.map((s, i) => (
+                        <span
+                          key={i}
+                          className="text-xs px-2 py-0.5 rounded-full bg-white border border-gray-300 text-gray-500"
+                        >
+                          문서{s.document_id} · {(s.score * 100).toFixed(0)}%
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               {loading && (
