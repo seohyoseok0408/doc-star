@@ -103,6 +103,14 @@ export const apiPost = async <T>(url: string, body: any): Promise<T> => {
   return handleResponse<T>(response);
 };
 
+// FormData(multipart/form-data) 전용. Content-Type을 undefined로 비워야 브라우저가 boundary 포함한 헤더를 자동 생성함
+export const apiUpload = async <T>(url: string, formData: FormData): Promise<T> => {
+  const response: AxiosResponse<ApiResponse<T>> = await apiClient.post(url, formData, {
+    headers: { "Content-Type": undefined },
+  });
+  return handleResponse<T>(response);
+};
+
 export const apiPut = async <T>(url: string, body: any): Promise<T> => {
   const response: AxiosResponse<ApiResponse<T>> = await apiClient.put(url, body);
   return handleResponse<T>(response);

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { apiPost } from "@/utils/apiClient"; // Import apiClient
+import { apiUpload } from "@/utils/apiClient";
 
 export default function DocumentUploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -31,12 +31,7 @@ export default function DocumentUploadPage() {
     formData.append("file", selectedFile);
 
     try {
-      // Use apiPost to send the file
-      const response = await apiPost<string>("/api/document/upload", formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data', // Explicitly set content type for FormData
-        },
-      });
+      const response = await apiUpload<string>("/api/document/upload", formData);
 
       console.log("File upload successful:", response);
       setUploadStatus(response || `'${selectedFile.name}' 파일이 성공적으로 업로드되었습니다.`);
