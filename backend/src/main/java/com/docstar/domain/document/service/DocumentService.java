@@ -35,9 +35,9 @@ public class DocumentService {
     private final UserRepository userRepository;
 
     @Transactional
-    public void processDocument(MultipartFile file, Long userId) throws IOException {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다. id=" + userId));
+    public void processDocument(MultipartFile file, String username) throws IOException {
+        UserEntity user = userRepository.findByUsernameAndIsLock(username, false)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다. username=" + username));
 
         DocumentEntity documentEntity = DocumentEntity.builder()
                 .user(user)

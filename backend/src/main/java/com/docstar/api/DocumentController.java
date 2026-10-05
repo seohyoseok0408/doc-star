@@ -1,11 +1,12 @@
 package com.docstar.api;
 
-import com.docstar.domain.document.service.DocumentService; // New import
+import com.docstar.domain.document.service.DocumentService;
 import com.docstar.global.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,10 +18,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class DocumentController {
 
-    private final DocumentService documentService; // Injected DocumentService
-
-    // UPLOAD_DIR is now managed by DocumentService or configuration
-    // private final String UPLOAD_DIR = "./uploads/"; 
+    private final DocumentService documentService;
 
     @PostMapping("/upload")
     public ResponseEntity<ApiResponse<String>> uploadDocument(@RequestParam("file") MultipartFile file) {
@@ -30,12 +28,12 @@ public class DocumentController {
         }
 
         try {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
             String originalFileName = file.getOriginalFilename();
-            Long userId = 1L; // TODO: Security Context에서 실제 userId 추출로 교체
 
-            documentService.processDocument(file, userId);
+            documentService.processDocument(file, username);
 
-            log.info("File upload initiated: {}", originalFileName);
+            log.info("File upload by {}: {}", username, originalFileName);
             return ResponseEntity.ok(ApiResponse.success("파일이 성공적으로 업로드 및 처리 요청되었습니다: " + originalFileName, null));
 
         } catch (IllegalArgumentException e) {
